@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            text-align: center;
+            margin: 20px;
+        }
+        table {
+            width: 80%;
+            margin: auto;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        .edit-btn, .delete-btn {
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            color: black;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .buy-btn {
+            display: block;
+            margin: 10px auto;
+            padding: 10px;
+            width: 100%;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .buy-btn:hover {
+            background: #0056b3;
+        }
+        .navbar {
+    background-color: #007bff;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+}
+
+.navbar .logo {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar ul li {
+    margin: 0 10px;
+}
+
+.navbar ul li a {
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+    transition: 0.3s;
+}
+
+.navbar ul li a:hover {
+    color: #ffcc00;
+}
+
+/* لجعل القائمة متجاوبة على الهاتف */
+.menu-toggle {
+    display: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* تصميم القائمة عند تصغير الشاشة */
+@media (max-width: 768px) {
+    .navbar ul {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 60px;
+        right: 0;
+        background-color: #007bff;
+        width: 200px;
+        text-align: center;
+        padding: 10px 0;
+    }
+
+    .navbar ul.active {
+        display: flex;
+    }
+
+    .menu-toggle {
+        display: block;
+    }
+}
+
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">لوحة التحكم</div>
+        <ul id="nav-links">
+            <li><a href="index.html">الرئيسية</a></li>
+            <li><a href="add_product.html">إضافة منتج</a></li>
+
+        </ul>
+        <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+    </nav>
+    
+    <h1>Tableau de Bord - Produits</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Description</th>
+                <th>Prix</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="product-table">
+            <!-- Produits seront affichés ici -->
+        </tbody>
+    </table>
+
+    <form id="edit-form" style="display: none;">
+        <h2>Modifier un Produit</h2>
+        <input type="hidden" id="edit-id">
+        <input type="text" id="edit-name" placeholder="Nom du produit" required>
+        <input type="text" id="edit-description" placeholder="Description" required>
+        <input type="number" id="edit-price" placeholder="Prix" required>
+        <button type="submit">Modifier</button>
+    </form>
+
+    <script>
+        // Récupérer les produits
+        async function fetchProducts() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/products');
+                const data = await response.json();
+                displayProducts(data.data);
+            } catch (error) {
+                console.error("Erreur lors de la récupération des produits:", error);
+            }
+        }
+
+        // Afficher les produits
+        function displayProducts(products) {
+            const tableBody = document.getElementById("product-table");
+            tableBody.innerHTML = "";
+            products.forEach(product => {
+                const row = `
+                    <tr>
+                        <td>${product.id}</td>
+                        <td>${product.name}</td>
+                        <td>${product.description}</td>
+                        <td>${product.price} د.ج</td>
+                        <td>
+                            <button class="edit-btn" onclick="editProduct(${product.id}, '${product.name}', '${product.description}', '${product.price}')">Modifier</button>
+                            <button class="delete-btn" onclick="deleteProduct(${product.id})">Supprimer</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        // Modifier un produit
+        function editProduct(id, name, description, price) {
+            document.getElementById("edit-id").value = id;
+            document.getElementById("edit-name").value = name;
+            document.getElementById("edit-description").value = description;
+            document.getElementById("edit-price").value = price;
+            document.getElementById("edit-form").style.display = "block";
+        }
+
+        document.getElementById("edit-form").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById("edit-id").value;
+            const name = document.getElementById("edit-name").value;
+            const description = document.getElementById("edit-description").value;
+            const price = document.getElementById("edit-price").value;
+
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/api/products/${id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, description, price })
+                });
+
+                if (response.ok) {
+                    alert("Produit modifié avec succès !");
+                    document.getElementById("edit-form").reset();
+                    document.getElementById("edit-form").style.display = "none";
+                    fetchProducts();
+                } else {
+                    console.error("Erreur lors de la modification du produit.");
+                }
+            } catch (error) {
+                console.error("Erreur lors de la modification:", error);
+            }
+        });
+
+        // Supprimer un produit
+        async function deleteProduct(id) {
+            if (confirm("Voulez-vous vraiment supprimer ce produit ?")) {
+                try {
+                    const response = await fetch(`http://127.0.0.1:8000/api/products/${id}`, {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" }
+                    });
+
+                    if (response.ok) {
+                        alert("Produit supprimé avec succès !");
+                        fetchProducts();
+                    } else {
+                        console.error("Erreur lors de la suppression.");
+                    }
+                } catch (error) {
+                    console.error("Erreur lors de la suppression:", error);
+                }
+            }
+        }
+
+        fetchProducts();
+        // Charger les produits au démarrage
+        function toggleMenu() {
+    document.getElementById("nav-links").classList.toggle("active");
+}
+
+    </script>
+
+</body>
+</html>
